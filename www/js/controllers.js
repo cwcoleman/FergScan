@@ -5,17 +5,22 @@ angular.module('starter.controllers', ['base64'])
 .controller('ScanCtrl', ['ListFactory', '$cordovaBarcodeScanner', '$base64', '$scope', '$ionicModal',
   function(ListFactory, $cordovaBarcodeScanner, $base64, $scope, $ionicModal) {
 
-      // Load the add / change dialog from the given template URL
-      $ionicModal.fromTemplateUrl('edit-dialog.html', function(modal) {
-        $scope.addDialog = modal;
-      }, {
+      // Create and load the Modal
+      $ionicModal.fromTemplateUrl('templates/edit-dialog.html', {
         scope: $scope,
         animation: 'slide-in-up'
-      });
+      }).then(function(modal) {
+        $scope.editDialog = modal
+      })
 
       $scope.data = {
         showReorder: false
       };
+
+      // Used to cache the empty form for Edit Dialog
+      $scope.saveEmpty = function(form) {
+        $scope.form = angular.copy(form);
+      }
 
       $scope.moveItem = function(item, fromIndex, toIndex) {
         $scope.list.splice(fromIndex, 1);
@@ -24,32 +29,51 @@ angular.module('starter.controllers', ['base64'])
       };
 
       $scope.showEditItem = function(item) {
-        alert("here1");
+        console.log("inside show edit item function");
         // Remember edit item to change it later
         $scope.tmpEditItem = item;
-        alert("here2: " + item.description);
+        console.log("item description: " + item.description);
         // Preset form values
-        //$scope.form.description.$setViewValue(item.description);
-        //alert("here3");
+        $scope.form.description.$setViewValue(item.description);
+        console.log("after setting form description");
         // Open dialog
         $scope.showEditDialog('change');
       };
 
       $scope.showEditDialog = function(action) {
         $scope.action = action;
-        $scope.addDialog.show();
+        console.log("action: " + action);
+        $scope.editDialog.show();
+        console.log("dialog box should be up...");
+      };
+
+      $scope.editItem = function(form) {
+
+        console.log("inside edit item function");
+
+        var item = {};
+        item.description = form.description.$modelValue;
+
+        var editIndex = ListFactory.getList().indexOf($scope.tmpEditItem);
+        $scope.list[editIndex] = item;
+        ListFactory.setList($scope.list);
+
+        $scope.leaveEditDialog();
       };
 
       $scope.leaveEditDialog = function() {
         // Remove dialog 
-        $scope.addDialog.remove();
-        // Reload modal template to have cleared form
-        $ionicModal.fromTemplateUrl('edit-dialog.html', function(modal) {
+        console.log("leave edit dialog");
+        $scope.editDialog.remove();
+
+         // Reload modal template to have cleared form
+        $ionicModal.fromTemplateUrl('/templates/edit-dialog.html', function(modal) {
           $scope.addDialog = modal;
         }, {
           scope: $scope,
           animation: 'slide-in-up'
         });
+
       };
 
       // Get list from storage
@@ -68,11 +92,21 @@ angular.module('starter.controllers', ['base64'])
         ListFactory.setList($scope.list);
       };
 
+      $scope.addItem = function(form) {
+        console.log("inside add item function");
+        $scope.leaveEditDialog();
+      };
+
+
       $scope.scanBarcode = function() {
         $cordovaBarcodeScanner.scan().then(function(imageData) {
           console.log("Barcode Format -> " + imageData.format);
           console.log("Cancelled -> " + imageData.cancelled);
 
+          if(imageData.cancelled){
+            console.log("user canceled, do nothing");
+
+          }else{
             // Add values from scanner to object
             var newItem = {};
             newItem.description = imageData.text;
@@ -81,14 +115,17 @@ angular.module('starter.controllers', ['base64'])
             $scope.list.push(newItem);
             ListFactory.setList($scope.list);
 
+          }
 
-          }, function(error) {
-            console.log("An error happened -> " + error);
-          });
+
+        }, function(error) {
+          console.log("An error happened -> " + error);
+        });
       };
 
       $scope.sendEmail = function() {
 
+        alert("inside send email");
         console.log("inside send email function");
 
         var bodyText = "Your data is attached. Thank You for using the Ferguson Barcode Scanner!";
@@ -105,17 +142,9 @@ angular.module('starter.controllers', ['base64'])
             var barcodeData = $base64.encode(barcodes);
             console.log("base64 result: " + barcodeData);
 
-            cordova.plugins.email.isAvailable(
-              function (isAvailable) {
-                // alert('Service is not available') unless isAvailable;
-                console.log("isAvailable: " + isAvailable);
-              }
-            );
+            alert("about to email...");
 
             window.plugin.email.open({
-                  to:          ["cwcoleman@gmail.com"], // email addresses for TO field
-                  cc:          Array, // email addresses for CC field
-                  bcc:         Array, // email addresses for BCC field
                   attachments: ["base64:FEIscannerData.txt//"+barcodeData+"/..."], // barcode data
                   subject:    'Here is your scanner data!', // subject of the email
                   body:       'see attachment', // email body (for HTML, set isHtml to true)
