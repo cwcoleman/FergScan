@@ -1,4 +1,4 @@
-angular.module('starter.services', [])
+angular.module('fergScan.services', [])
 
 .factory('ListFactory', function() {
 

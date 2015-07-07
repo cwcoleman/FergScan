@@ -1,8 +1,39 @@
-angular.module('starter.controllers', ['base64'])
-
-.controller('DashCtrl', function($scope) {})
+angular.module('fergScan.controllers', ['base64'])
 
 .controller('ScanCtrl', ['ListFactory', '$cordovaBarcodeScanner', '$base64', '$scope', '$ionicModal',
+  function(ListFactory, $cordovaBarcodeScanner, $base64, $scope, $ionicModal) {
+
+    // Get list from storage
+    $scope.list = ListFactory.getList();
+
+    $scope.scanBarcode = function() {
+        $cordovaBarcodeScanner.scan().then(function(imageData) {
+          console.log("Barcode Format -> " + imageData.format);
+          console.log("Cancelled -> " + imageData.cancelled);
+
+          if(imageData.cancelled){
+            console.log("user canceled, do nothing");
+
+          }else{
+            // Add values from scanner to object
+            var newItem = {};
+            newItem.description = imageData.text;
+
+            // Save new list in scope and factory
+            $scope.list.push(newItem);
+            ListFactory.setList($scope.list);
+
+          }
+
+        }, function(error) {
+          console.log("An error happened -> " + error);
+        });
+      };
+
+  }
+])
+
+.controller('ListCtrl', ['ListFactory', '$cordovaBarcodeScanner', '$base64', '$scope', '$ionicModal',
   function(ListFactory, $cordovaBarcodeScanner, $base64, $scope, $ionicModal) {
 
       // Create and load the Modal
@@ -98,34 +129,8 @@ angular.module('starter.controllers', ['base64'])
       };
 
 
-      $scope.scanBarcode = function() {
-        $cordovaBarcodeScanner.scan().then(function(imageData) {
-          console.log("Barcode Format -> " + imageData.format);
-          console.log("Cancelled -> " + imageData.cancelled);
-
-          if(imageData.cancelled){
-            console.log("user canceled, do nothing");
-
-          }else{
-            // Add values from scanner to object
-            var newItem = {};
-            newItem.description = imageData.text;
-
-            // Save new list in scope and factory
-            $scope.list.push(newItem);
-            ListFactory.setList($scope.list);
-
-          }
-
-
-        }, function(error) {
-          console.log("An error happened -> " + error);
-        });
-      };
-
       $scope.sendEmail = function() {
 
-        alert("inside send email");
         console.log("inside send email function");
 
         var bodyText = "Your data is attached. Thank You for using the Ferguson Barcode Scanner!";
@@ -141,8 +146,6 @@ angular.module('starter.controllers', ['base64'])
 
             var barcodeData = $base64.encode(barcodes);
             console.log("base64 result: " + barcodeData);
-
-            alert("about to email...");
 
             window.plugin.email.open({
                   attachments: ["base64:FEIscannerData.txt//"+barcodeData+"/..."], // barcode data
